@@ -1,0 +1,86 @@
+            const reports = await prisma.$queryRawUnsafe  (` 
+                select 1,'Business Process' as name, 'BusinessProcess' id, count(*) count  from "BusinessProcess" where "reportID" = '${req.params.id}'  union 
+                select 2,'Technical Object' as name, 'TechnicalObject' id, count(*) count from "TechnicalObjects"  where "reportID" = '${req.params.id}' union
+                select 3,'Master Data Details' as name,'MasterData' as id,count(*) count from "MasterDataDetails" where "reportID" = '${req.params.id}'
+                order by 1
+            `);
+
+
+model MasterDataDetails {
+    id                          String   @id @default(uuid())
+    reportID                    String
+    Master_Data_Type            String
+    Master_Data_Volume          BigInt
+    Master_Data_Used_Volume     BigInt?
+    modifiedBy                  String
+    modifiedAt                  DateTime @default(now())
+}
+
+
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+
+async function routes(fastify, options) {
+    fastify.get('/MasterData', async function (req, res) {
+        try {
+            const result = await prisma.MasterDataDetails.findMany({
+                orderBy: [{ modifiedAt: 'desc' }]
+            })
+            return result;
+        } catch (error) {
+            console.log(error)
+            res.status(error.status || 500).send(error);
+        }
+    })
+
+    fastify.post('/MasterData/:reportID', async function (req, res) {
+        try {
+            let data = req.body;
+            data.forEach(e => {
+                e.reportID = req.params.reportID
+            });
+
+            //Deleting Records for Full Load  
+            const deleteMDRecords = await prisma.MasterDataDetails.deleteMany({
+                where: {
+                    reportID: req.params.reportID,
+                }
+            });
+
+            const reports = await prisma.MasterDataDetails.createMany({
+                data: data
+            })
+            return reports;
+        } catch (error) {
+            console.log(error)
+            res.status(error.status || 500).send(error);
+        }
+    });
+
+    fastify.get('/MasterDataSummary/:reportID', async function (req, res) {
+        try {
+            const masterDataDetails = await prisma.MasterDataDetails.findMany({
+                select:{
+                    Master_Data_Type: true,
+                    Master_Data_Volume: true
+                },
+                where: {
+                    reportID: req.params.reportID
+                }
+            })
+            
+            let data = {
+                masterDataDetails
+            }
+
+            return data;
+        } catch (error) {
+            console.log(error)
+            res.status(error.status || 500).send(error);
+        }
+    })
+}
+module.exports = routes
+
+
