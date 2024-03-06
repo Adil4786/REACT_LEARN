@@ -1,0 +1,184 @@
+                if (url.indexOf('MasterData') > 0) {
+                    sheetData = sheetData.map(e => {
+                        e.modifiedBy = "Adil"
+                        return e
+                    })
+                }
+
+
+MasterData
+
+
+import React, { useRef, useState, useEffect, componentDidMount } from "react";
+import axios from "axios"
+import { Treemap } from '@ant-design/plots';
+
+import {
+    MenuFoldOutlined,
+    MenuUnfoldOutlined,
+    FireOutlined ,
+    RiseOutlined ,
+    PlayCircleOutlined ,
+    ApartmentOutlined,
+    CompressOutlined,
+    BlockOutlined,
+    BuildOutlined,
+    FileWordOutlined
+} from '@ant-design/icons';
+import { useParams } from 'react-router';
+import { Layout, Table, Button, theme, Typography, Segmented, Collapse, Card, Col, Row, Statistic, Tabs } from 'antd';
+import ComingSoon from "./ComingSoon";
+import MasterDataDiscover from "./masterData/Discover";
+
+
+const { Text, Link, Title } = Typography;
+
+const { Header, Sider, Content } = Layout;
+
+
+
+
+const MasterData = () => {
+    const { reportID } = useParams();
+    let report = JSON.parse(atob(reportID));
+
+    return (
+        <div style={{ overflowY: "auto", height: "99%" }}>
+            <Tabs tabPosition="top" type="card">
+                <Tabs.TabPane
+                    key={"Discover"}
+                    tab={<span><ApartmentOutlined />Discover</span>}
+                >
+                    {<MasterDataDiscover />}
+                </Tabs.TabPane>
+                <Tabs.TabPane
+                    key={"Explore"}
+                    tab={<span><CompressOutlined />Explore</span>}
+                >
+                    {<ComingSoon/>}
+                </Tabs.TabPane> 
+                <Tabs.TabPane
+                    key={"Realize"}
+                    tab={<span><RiseOutlined  />Realize</span>}
+                >{<ComingSoon/>}
+                </Tabs.TabPane> 
+                <Tabs.TabPane
+                    key={"Deploy"}
+                    tab={<span><FireOutlined  />Deploy</span>}
+                >{<ComingSoon/>}
+                </Tabs.TabPane>
+                <Tabs.TabPane
+                    key={"Run"}
+                    tab={<span><PlayCircleOutlined />Run</span>}
+                >{<ComingSoon/>}
+                </Tabs.TabPane>
+
+            </Tabs>
+        </div >
+    );
+};
+export default MasterData;
+
+
+
+
+import React, { useEffect } from "react";
+import axios from "axios"
+import { Bar } from '@ant-design/plots';
+import { each, groupBy } from '@antv/util';
+
+import { useParams } from 'react-router';
+import { Layout, Typography, Card, Col, Row, } from 'antd';
+
+
+
+const MasterDataDiscover = () => {
+
+    const { reportID } = useParams();
+    let report = JSON.parse(atob(reportID));
+
+    const [toData, setToData] = React.useState(null);
+
+
+    const fetchTOData = async () => {
+        axios
+            .get("/api/MasterDataSummary/" + report.id)
+            .then((res) => {
+                setToData({ "masterDataDetails":[
+                    {
+                      "Master_Data_Type": "material",
+                      "Master_Data_Volume": 1000
+                    },
+                    {
+                      "Master_Data_Type": "customer",
+                      "Master_Data_Volume": 1200
+                    },
+                    {
+                      "Master_Data_Type": "bank",
+                      "Master_Data_Volume": 1600
+                    },
+                    {
+                      "Master_Data_Type": "GL",
+                      "Master_Data_Volume": 3000
+                    }
+                  ]})
+            })
+
+    }
+
+    useEffect(() => {
+        fetchTOData();
+
+    }, []);
+    if (!toData) {
+        return <></>
+    }
+
+    const annotationsKPI1 = [];
+    each(toData.masterDataDetails,(value, key) => {
+        console.log(key);
+        console.log(value)
+      annotationsKPI1.push({
+        type: 'text',
+        position: [value.Master_Data_Type,value.Master_Data_Volume+''],
+        content: `${value.Master_Data_Volume}`,
+        style: { textAlign: 'center', fontSize: 10, fill: '#e20074' },
+        offsetY: -10, // Adjust as needed
+      });
+    });
+
+
+
+    console.log(annotationsKPI1)
+
+    const KPI1 = {
+        appendPadding: 10,
+        data: toData.masterDataDetails,
+        isStack: false,
+        xField: 'Master_Data_Type',
+        yField: 'Master_Data_Volume',
+        height: 300,
+        color: ['#FF7D7D', '#B3FFAE'],
+        label: {},
+        legend: {
+            layout: 'horizontal',
+            position: 'bottom',
+            display: true
+        },
+        annotations: annotationsKPI1
+    };
+
+    return (
+        <div style={{ overflowY: "auto", height: "99%" }}>
+            <Row gutter={0} >
+                <Col span={12} style={{ padding: "10px" }}>
+                    <Card bordered={true} size="small">
+                        <Typography.Title style={{ textAlign: "left" }} level={5}>Master Data Volume</Typography.Title>
+                        <Bar {...KPI1} />
+                    </Card>
+                </Col>
+            </Row>
+        </div>
+    );
+};
+export default MasterDataDiscover;
